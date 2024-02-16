@@ -1,10 +1,12 @@
 package org.techtown.unitconverter_1
 
+import android.os.Build
 import android.os.Bundle
 import android.widget.EditText
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -28,13 +30,21 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import org.techtown.unitconverter_1.ui.theme.UnitConverter1Theme
+import kotlin.math.roundToInt
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -61,6 +71,30 @@ class MainActivity : ComponentActivity() {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun UnitConverter() {
+    var inputValue by remember { mutableStateOf("") }
+    var outputValue by remember { mutableStateOf("") }
+    var inputUnit by remember { mutableStateOf("Meters") }
+    var outputUnit by remember { mutableStateOf("Meters") }
+    var iExpanded by remember { mutableStateOf(false) }
+    var oExpanded by remember { mutableStateOf(false) }
+    val conversionFactor = remember { mutableStateOf(1.0) }
+    val oConversionFactor = remember { mutableStateOf(1.0) }
+
+    val customTextStyle = TextStyle(
+        fontFamily = FontFamily.Monospace,
+        fontSize = 32.sp,
+        color = Color.Red
+    )
+
+    fun convertUnits() {
+        // ?: 아건 elvis operator인데 if문임! 삼항은 아니고 널이면 저걸 받음
+        //
+        val inputValueDouble = inputValue.toDoubleOrNull() ?: 0.0
+        // 너무 길어지지않게 만들기
+        val result = (inputValueDouble * conversionFactor.value * 100.0 / oConversionFactor.value).roundToInt() / 100.00
+        outputValue = result.toString()
+    }
+
     Column (
         modifier = Modifier.fillMaxSize(),
         verticalArrangement = Arrangement.Center,
@@ -68,57 +102,107 @@ fun UnitConverter() {
     ){
 
         // ui elements를 하나씩 쌓을예정 - 기본이 수직이네
-        Text(text = "Unit Converter", modifier = Modifier.padding(20.dp))
+        Text(text = "Unit Converter", modifier = Modifier.padding(5.dp),
+            style = customTextStyle)
 
         Spacer(modifier = Modifier.height(16.dp))
 
         // 값이 바뀌는 순간 무엇을 해야할지 지정
         // ui가 업데이트가 안됨 - 이 이유는 아직 onValueChange를 설정 안해서!
-        OutlinedTextField(value = "", onValueChange = {
+        OutlinedTextField(value = inputValue, onValueChange = {
             // 값이 바뀌는 순간 변경 되는것
-        })
+            inputValue = it
+            convertUnits()
+        }, label = { Text(text = "Enter value")})
 
         Spacer(modifier = Modifier.height(16.dp))
 
         Row {
-            //val context = LocalContext.current
+            // input Box
             Box {
-                Button(onClick = { /*TODO*/ }) {
-                    Text(text = "Select")
+                Button(onClick = {
+                    iExpanded = true
+                }) {
+                    // Select인데 여기서 내가 드롭버튼을 누르면그걸로 이름 변경되게
+                    Text(text = inputUnit)
                     // contentDescription - 시각장애인등을 위한 사람들을 위한 접근성 서비스
                     Icon(Icons.Default.ArrowDropDown, contentDescription = "Arrow Down")
                 }
                 // 일단 닫혀있어야함!
-                DropdownMenu(expanded = false, onDismissRequest = {
+                DropdownMenu(expanded = iExpanded, onDismissRequest = {
                     // 드롭다운 메뉴가 닫혔을때 어떻게 할지 지정
+                    iExpanded = false
                 }) {
-                    DropdownMenuItem(text = { Text(text = "Centimeters")}, onClick = {  })
-                    DropdownMenuItem(text = { Text(text = "Meters")}, onClick = {  })
-                    DropdownMenuItem(text = { Text(text = "Feet")}, onClick = {  })
-                    DropdownMenuItem(text = { Text(text = "Milimeters")}, onClick = {  })
+                    DropdownMenuItem(text = { Text(text = "Centimeters")}, onClick = {
+                        iExpanded = false
+                        inputUnit = "Centimeters"
+                        conversionFactor.value = 0.01
+                        convertUnits()
+                    })
+                    DropdownMenuItem(text = { Text(text = "Meters")}, onClick = {
+                        iExpanded = false
+                        inputUnit = "Meters"
+                        conversionFactor.value = 1.0
+                        convertUnits()
+                    })
+                    DropdownMenuItem(text = { Text(text = "Feet")}, onClick = {
+                        iExpanded = false
+                        inputUnit = "Feet"
+                        conversionFactor.value = 0.3048
+                        convertUnits()
+                    })
+                    DropdownMenuItem(text = { Text(text = "Milimeters")}, onClick = {
+                        iExpanded = false
+                        inputUnit = "Milimeters"
+                        conversionFactor.value = 0.001
+                        convertUnits()
+                    })
                 }
             }
-
             Spacer(modifier = Modifier.width(16.dp))
-
+            // output Box
             Box {
-                Button(onClick = { /*TODO*/ }) {
-                    Text(text = "Select")
+                Button(onClick = { oExpanded = true }) {
+                    Text(text = outputUnit)
                     // contentDescription - 시각장애인등을 위한 사람들을 위한 접근성 서비스
                     Icon(Icons.Default.ArrowDropDown, contentDescription = "Arrow Down")
                 }
-                DropdownMenu(expanded = true, onDismissRequest = {
+                DropdownMenu(expanded = oExpanded, onDismissRequest = {
                     // 드롭다운 메뉴가 닫혔을때 어떻게 할지 지정
+                    oExpanded = false
                 }) {
-                    DropdownMenuItem(text = { Text(text = "Centimeters")}, onClick = {  })
-                    DropdownMenuItem(text = { Text(text = "Meters")}, onClick = {  })
-                    DropdownMenuItem(text = { Text(text = "Feet")}, onClick = {  })
-                    DropdownMenuItem(text = { Text(text = "Milimeters")}, onClick = {  })
+                    DropdownMenuItem(text = { Text(text = "Centimeters")}, onClick = {
+                        oExpanded = false
+                        outputUnit = "Centimeters"
+                        oConversionFactor.value = 0.01
+                        convertUnits()
+                    })
+                    DropdownMenuItem(text = { Text(text = "Meters")}, onClick = {
+                        oExpanded = false
+                        outputUnit = "Meters"
+                        oConversionFactor.value = 1.0
+                        convertUnits()
+                    })
+                    DropdownMenuItem(text = { Text(text = "Feet")}, onClick = {
+                        oExpanded = false
+                        outputUnit = "Feet"
+                        oConversionFactor.value = 0.3048
+                        convertUnits()
+                    })
+                    DropdownMenuItem(text = { Text(text = "Milimeters")}, onClick = {
+                        oExpanded = false
+                        outputUnit = "Milimeters"
+                        oConversionFactor.value = 0.001
+                        convertUnits()
+                    })
                 }
             }
         }
         Spacer(modifier = Modifier.height(16.dp))
-        Text(text = "Result: ")
+
+        //Result Text
+        Text(text = "Result: $outputValue $outputUnit",
+            style = MaterialTheme.typography.headlineMedium)
     }
 }
 
@@ -132,3 +216,11 @@ fun UnitConverter() {
 fun UnitConverterPreView() {
     UnitConverter()
 }
+
+/**
+ * event를 통해 state의 변화를 가져옴
+ * state관리를 사용자 액션이나 데이터 업데이트 같은 이벤트가 일어났을때 변화함
+ *
+ * remember함수 와recomposition state
+ *
+ */
